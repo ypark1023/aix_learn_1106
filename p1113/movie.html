@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoviePEDIA - 영화 순위 & 추천</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-void: #0D0D0E;
+      --bg-surface: #131317;
+      --accent-electric: #2B00FF;
+      --accent-violet: #4E12FF;
+      --accent-cyan: #00F0FF;
+    }
+    body {
+      font-family: 'Figtree', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #0D0D0E;
+      color: #FFFFFF;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .glass-panel {
+      background: rgba(20, 20, 26, 0.72);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+    .btn-electric {
+      background: linear-gradient(135deg, #2B00FF 0%, #4E12FF 100%);
+      box-shadow: 0 0 22px rgba(43, 0, 255, 0.45);
+    }
+    .btn-electric:hover {
+      background: linear-gradient(135deg, #3814FF 0%, #602BFF 100%);
+      box-shadow: 0 0 28px rgba(0, 240, 255, 0.35);
+    }
+    .poster-rank-num {
+      text-shadow: 0 6px 24px rgba(0, 0, 0, 0.92), 0 0 18px rgba(0, 240, 255, 0.35);
+      -webkit-text-stroke: 1px rgba(255, 255, 255, 0.32);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased relative overflow-x-hidden selection:bg-[#00F0FF]/25 selection:text-[#00F0FF]">
+
+  <!-- Dirol 2.0 스타일 앰비언트 배경 글로우 -->
+  <div class="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
+    <div class="absolute -top-44 left-1/2 -translate-x-1/2 w-[780px] h-[420px] rounded-full opacity-35 blur-[130px]"
+         style="background: radial-gradient(circle, #2B00FF 0%, #1B00C4 45%, transparent 75%);"></div>
+    <div class="absolute top-36 -right-32 w-[420px] h-[420px] rounded-full opacity-15 blur-[120px]"
+         style="background: radial-gradient(circle, #00F0FF 0%, transparent 70%);"></div>
+    <div class="absolute bottom-0 -left-32 w-[460px] h-[360px] rounded-full opacity-20 blur-[130px]"
+         style="background: radial-gradient(circle, #4E12FF 0%, transparent 70%);"></div>
+  </div>
+
+  <!-- 최상단 헤더: 좌측 로그인/회원가입, 중앙 MoviePEDIA 제목, 우측 검색 -->
+  <header class="sticky top-0 z-40 border-b border-white/[0.08] bg-[#0D0D0E]/80 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      
+      <!-- 좌측: 로그인 / 회원가입 (Pill-shaped 버튼) -->
+      <div id="authArea" class="flex items-center gap-2 shrink-0">
+        <button id="openLoginBtn" type="button" class="px-4 py-1.5 text-xs sm:text-sm font-medium text-white/90 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 hover:border-[#00F0FF]/50 rounded-full transition">
+          로그인
+        </button>
+        <button id="openSignupBtn" type="button" class="px-4 py-1.5 text-xs sm:text-sm font-semibold text-white btn-electric rounded-full transition">
+          회원가입
+        </button>
+      </div>
+
+      <!-- 중앙: MoviePEDIA 제목 -->
+      <a href="#top" id="brandLogo" class="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-1 select-none">
+        <span class="text-white">Movie</span><span class="bg-gradient-to-r from-[#00F0FF] to-[#4E12FF] bg-clip-text text-transparent">PEDIA</span>
+      </a>
+
+      <!-- 우측: 빠른 검색 & 찜 목록 -->
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="relative">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="영화 검색..."
+            aria-label="영화 검색"
+            class="w-28 sm:w-48 md:w-56 pl-8 pr-3.5 py-1.5 text-xs sm:text-sm bg-white/[0.05] border border-white/15 focus:border-[#00F0FF]/70 focus:bg-white/[0.08] focus:outline-none rounded-full text-white placeholder-zinc-500 transition"
+          />
+          <svg class="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <button id="watchlistFilterBtn" type="button" title="찜한 영화 보기" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white/[0.05] border border-white/15 hover:border-[#00F0FF]/50 rounded-full text-zinc-200 transition">
+          <span class="text-[#00F0FF]">♥</span>
+          <span id="watchlistCount">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 -->
+  <main id="top" class="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-11 space-y-12">
+
+    <!-- 검색 결과 알림 바 (검색어 입력 시 노출) -->
+    <div id="searchStatusBar" class="hidden items-center justify-between px-4 py-2.5 rounded-2xl glass-panel text-xs sm:text-sm text-zinc-200">
+      <span id="searchStatusText"></span>
+      <button id="clearSearchBtn" type="button" class="text-[#00F0FF] hover:text-white font-semibold transition">검색 초기화</button>
+    </div>
+
+    <!-- 섹션 1: 영화 순위 (슬라이드 10개) -->
+    <section aria-labelledby="rankingHeading">
+      <div class="flex items-end justify-between gap-4 mb-5">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h2 id="rankingHeading" class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">영화 순위</h2>
+            <span class="px-2.5 py-0.5 text-[11px] font-bold bg-[#2B00FF]/25 text-[#00F0FF] border border-[#00F0FF]/35 rounded-full">
+              역대 관객수 TOP 10
+            </span>
+          </div>
+          <p class="text-xs text-zinc-400 mt-1.5">포스터를 클릭하면 상세 관객수와 정보를 확인할 수 있습니다.</p>
+        </div>
+
+        <!-- 슬라이드 좌우 컨트롤 -->
+        <div class="flex items-center gap-2 shrink-0">
+          <span id="slideIndicator" class="text-xs font-medium text-zinc-400 hidden sm:inline mr-1">1–5 / 10</span>
+          <button id="prevSlideBtn" type="button" aria-label="이전 영화 순위" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.05] hover:bg-[#2B00FF] border border-white/15 hover:border-[#4E12FF] text-white transition disabled:opacity-40">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <button id="nextSlideBtn" type="button" aria-label="다음 영화 순위" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.05] hover:bg-[#2B00FF] border border-white/15 hover:border-[#4E12FF] text-white transition disabled:opacity-40">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 10개 포스터 슬라이드 트랙 -->
+      <div id="rankingSlider" class="flex gap-3.5 sm:gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory no-scrollbar pb-2">
+        <!-- JS로 10개 슬라이드 렌더링 -->
+      </div>
+    </section>
+
+    <!-- 섹션 2: 영화 추천 (카드 5개) -->
+    <section aria-labelledby="recommendHeading">
+      <div class="flex items-end justify-between gap-4 mb-5">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h2 id="recommendHeading" class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">영화 추천</h2>
+            <span class="px-2.5 py-0.5 text-[11px] font-bold bg-white/[0.07] text-white border border-white/15 rounded-full">
+              천만 관객 큐레이션
+            </span>
+          </div>
+          <p class="text-xs text-zinc-400 mt-1.5">역대 흥행 11~15위 작품 기반 추천 카드입니다.</p>
+        </div>
+      </div>
+
+      <!-- 5개 추천 카드 그리드 -->
+      <div id="recommendGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+        <!-- JS로 5개 카드 렌더링 -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 푸터 -->
+  <footer class="relative z-10 border-t border-white/[0.08] bg-[#09090B]/90 py-6 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500">
+      <span><strong class="text-white font-bold">MoviePEDIA</strong> · 영화 순위 및 추천 프로토타입</span>
+      <span>역대 관객수 기준: 대한민국 박스오피스 (KOBIS 집계 기반) · 추후 실제 데이터 연동 가능 구조</span>
+    </div>
+  </footer>
+
+  <!-- 로그인 모달 -->
+  <div id="loginModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="w-full max-w-sm glass-panel rounded-2xl p-6 shadow-2xl shadow-[#2B00FF]/20">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-extrabold text-white tracking-tight">로그인</h3>
+        <button type="button" data-close-modal="loginModal" class="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white flex items-center justify-center transition">✕</button>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="loginId" class="block text-xs font-medium text-zinc-400 mb-1.5">아이디 또는 이메일</label>
+          <input id="loginId" type="text" required placeholder="movie_fan@example.com" class="w-full px-4 py-2.5 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <div>
+          <label for="loginPw" class="block text-xs font-medium text-zinc-400 mb-1.5">비밀번호</label>
+          <input id="loginPw" type="password" required placeholder="••••••••" class="w-full px-4 py-2.5 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <button type="submit" class="w-full py-2.5 text-sm font-semibold text-white btn-electric rounded-full transition">로그인하기</button>
+      </form>
+      <p class="text-xs text-center text-zinc-400 mt-4">
+        아직 계정이 없으신가요?
+        <button id="switchToSignupBtn" type="button" class="text-[#00F0FF] hover:underline font-semibold ml-1">회원가입</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- 회원가입 모달 -->
+  <div id="signupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="w-full max-w-sm glass-panel rounded-2xl p-6 shadow-2xl shadow-[#2B00FF]/20">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-extrabold text-white tracking-tight">회원가입</h3>
+        <button type="button" data-close-modal="signupModal" class="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white flex items-center justify-center transition">✕</button>
+      </div>
+      <form id="signupForm" class="space-y-3.5">
+        <div>
+          <label for="signupNickname" class="block text-xs font-medium text-zinc-400 mb-1">닉네임</label>
+          <input id="signupNickname" type="text" required placeholder="예: 시네필" class="w-full px-4 py-2 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <div>
+          <label for="signupEmail" class="block text-xs font-medium text-zinc-400 mb-1">이메일</label>
+          <input id="signupEmail" type="email" required placeholder="movie_fan@example.com" class="w-full px-4 py-2 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <div>
+          <label for="signupPw" class="block text-xs font-medium text-zinc-400 mb-1">비밀번호</label>
+          <input id="signupPw" type="password" required minlength="4" placeholder="4자 이상 입력" class="w-full px-4 py-2 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <div>
+          <label for="signupPwConfirm" class="block text-xs font-medium text-zinc-400 mb-1">비밀번호 확인</label>
+          <input id="signupPwConfirm" type="password" required placeholder="비밀번호 재입력" class="w-full px-4 py-2 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <p id="signupError" class="text-xs text-[#00F0FF] hidden"></p>
+        <button type="submit" class="w-full py-2.5 text-sm font-semibold text-white btn-electric rounded-full transition mt-1">가입 완료</button>
+      </form>
+      <p class="text-xs text-center text-zinc-400 mt-4">
+        이미 계정이 있으신가요?
+        <button id="switchToLoginBtn" type="button" class="text-[#00F0FF] hover:underline font-semibold ml-1">로그인</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- 영화 상세 모달 -->
+  <div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="w-full max-w-md glass-panel rounded-2xl overflow-hidden shadow-2xl shadow-[#2B00FF]/25">
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 hidden px-5 py-2.5 rounded-full glass-panel text-xs sm:text-sm font-medium text-white shadow-xl shadow-[#2B00FF]/30"></div>
+
+  <script>
+    /**
+     * 추후 실제 데이터(API/JSON) 연동 시 아래 배열의 posterUrl에 실제 포스터 이미지 경로를 넣으면
+     * 자동으로 <img> 포스터로 교체됩니다. 비어있을 경우 내장 그래픽 포스터가 렌더링됩니다.
+     */
+    const BOX_OFFICE_RANKING = [
+      { id: 1, rank: 1, title: "명량", year: 2014, audience: "1,761만 6,791명", genre: "사극 · 액션", palette: ["#0D0D1A", "#2400FF", "#00F0FF"], posterUrl: "" },
+      { id: 2, rank: 2, title: "왕과 사는 남자", year: 2026, audience: "1,692만 7,099명", genre: "사극 · 드라마", palette: ["#12101B", "#3B00CC", "#00D1FF"], posterUrl: "" },
+      { id: 3, rank: 3, title: "극한직업", year: 2019, audience: "1,626만 6,641명", genre: "코미디 · 액션", palette: ["#160E24", "#4E12FF", "#00F0FF"], posterUrl: "" },
+      { id: 4, rank: 4, title: "신과함께-죄와 벌", year: 2017, audience: "1,441만 4,658명", genre: "판타지 · 드라마", palette: ["#0A0D18", "#1E1B8E", "#38BDF8"], posterUrl: "" },
+      { id: 5, rank: 5, title: "국제시장", year: 2014, audience: "1,426만 9,712명", genre: "드라마 · 가족", palette: ["#10121A", "#2B00FF", "#60A5FA"], posterUrl: "" },
+      { id: 6, rank: 6, title: "어벤져스: 엔드게임", year: 2019, audience: "1,415만 1,351명", genre: "SF · 액션", palette: ["#120B24", "#4E12FF", "#00F0FF"], posterUrl: "" },
+      { id: 7, rank: 7, title: "아바타", year: 2009, audience: "1,400만 3,138명", genre: "SF · 어드벤처", palette: ["#071821", "#0284C7", "#00F0FF"], posterUrl: "" },
+      { id: 8, rank: 8, title: "겨울왕국 2", year: 2019, audience: "1,376만 8,797명", genre: "애니메이션 · 판타지", palette: ["#0B172A", "#1D4ED8", "#7DD3FC"], posterUrl: "" },
+      { id: 9, rank: 9, title: "베테랑", year: 2015, audience: "1,341만 4,649명", genre: "범죄 · 액션", palette: ["#111118", "#3110B5", "#00D1FF"], posterUrl: "" },
+      { id: 10, rank: 10, title: "서울의 봄", year: 2023, audience: "1,312만 8,587명", genre: "드라마 · 현대사", palette: ["#12131A", "#2400FF", "#818CF8"], posterUrl: "" }
+    ];
+
+    const RECOMMENDED_MOVIES = [
+      { id: 11, rank: 11, title: "괴물", year: 2006, audience: "1,301만 9,740명", genre: "SF · 스릴러", palette: ["#09171B", "#0F4C81", "#00F0FF"], posterUrl: "" },
+      { id: 12, rank: 12, title: "도둑들", year: 2012, audience: "1,298만 4,701명", genre: "범죄 · 케이퍼", palette: ["#120E24", "#4E12FF", "#38BDF8"], posterUrl: "" },
+      { id: 13, rank: 13, title: "7번방의 선물", year: 2013, audience: "1,281만 2,473명", genre: "코미디 · 드라마", palette: ["#141222", "#2B00FF", "#A5B4FC"], posterUrl: "" },
+      { id: 14, rank: 14, title: "알라딘", year: 2019, audience: "1,280만 870명", genre: "뮤지컬 · 판타지", palette: ["#0E1026", "#3730A3", "#00F0FF"], posterUrl: "" },
+      { id: 15, rank: 15, title: "암살", year: 2015, audience: "1,270만 7,491명", genre: "액션 · 시대극", palette: ["#111116", "#2400FF", "#00D1FF"], posterUrl: "" }
+    ];
+
+    const state = {
+      currentUser: null,
+      watchlist: new Set(),
+      searchQuery: "",
+      onlyWatchlist: false
+    };
+
+    // 포스터 렌더링 헬퍼 (실제 posterUrl이 있으면 <img>, 없으면 Dirol 2.0 톤 그래픽 포스터)
+    function renderPosterVisual(movie, showRankBadge) {
+      if (movie.posterUrl) {
+        return `
+          <img src="${movie.posterUrl}" alt="${movie.title} 포스터" class="w-full h-full object-cover transition duration-300 group-hover:scale-105" />
+        `;
+      }
+      const [c1, c2, c3] = movie.palette;
+      return `
+        <div class="w-full h-full relative overflow-hidden transition duration-300 group-hover:scale-105"
+             style="background: radial-gradient(circle at 80% 18%, ${c3}44 0%, transparent 55%), linear-gradient(155deg, ${c1} 0%, ${c2} 62%, #0D0D0E 100%);">
+          <!-- Web3 글래스 & 지오메트릭 장식 -->
+          <svg class="absolute inset-0 w-full h-full opacity-25 pointer-events-none" viewBox="0 0 200 300" preserveAspectRatio="none">
+            <circle cx="155" cy="68" r="62" fill="${c3}" opacity="0.32" />
+            <path d="M0 225 Q105 182 200 232 L200 300 L0 300 Z" fill="#0D0D0E" opacity="0.58" />
+            <rect x="14" y="14" width="172" height="272" rx="14" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="1" />
+          </svg>
+          <!-- 포스터 내부 타이포그래피 -->
+          <div class="absolute inset-0 p-3.5 flex flex-col justify-between">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full bg-black/50 text-white border border-white/15">
+                ${movie.year}
+              </span>
+              <span class="text-[10px] text-[#00F0FF] font-semibold bg-black/45 px-2 py-0.5 rounded-full border border-[#00F0FF]/25">
+                ${movie.genre.split(" · ")[0]}
+              </span>
+            </div>
+            <div class="my-auto text-center px-1">
+              <p class="text-sm sm:text-base font-extrabold text-white leading-snug drop-shadow-md break-keep">
+                ${movie.title}
+              </p>
+              <p class="text-[10px] text-zinc-300/85 mt-1 font-medium">${movie.audience}</p>
+            </div>
+            <div class="h-4"></div>
+          </div>
+          ${showRankBadge ? `
+            <span class="poster-rank-num absolute bottom-1.5 left-3 text-3xl sm:text-4xl font-black italic text-white leading-none select-none">
+              ${movie.rank}
+            </span>
+          ` : ""}
+        </div>
+      `;
+    }
+
+    function createMovieCardHTML(movie, isSliderItem) {
+      const isSaved = state.watchlist.has(movie.id);
+      const widthClass = isSliderItem
+        ? "snap-start shrink-0 w-[44%] sm:w-[29%] md:w-[22%] lg:w-[18.8%]"
+        : "w-full";
+
+      return `
+        <article class="${widthClass} group cursor-pointer" data-movie-id="${movie.id}">
+          <div class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-[#131317] border border-white/10 group-hover:border-[#00F0FF]/60 group-hover:shadow-[0_0_26px_rgba(43,0,255,0.35)] transition duration-300">
+            ${renderPosterVisual(movie, isSliderItem)}
+            <!-- 찜하기 배지 -->
+            <button
+              type="button"
+              data-wish-id="${movie.id}"
+              aria-label="${movie.title} 찜하기"
+              class="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full flex items-center justify-center text-xs transition ${
+                isSaved
+                  ? "bg-[#2B00FF] text-[#00F0FF] border border-[#00F0FF]/50 shadow-md"
+                  : "bg-black/55 text-zinc-300 border border-white/15 hover:bg-[#2B00FF] hover:text-white opacity-90 sm:opacity-0 sm:group-hover:opacity-100"
+              }"
+            >
+              ${isSaved ? "♥" : "♡"}
+            </button>
+          </div>
+          <!-- 포스터 아래 작게 제목 -->
+          <div class="mt-2.5 px-0.5">
+            <h3 class="text-xs sm:text-[13px] font-semibold text-white group-hover:text-[#00F0FF] truncate transition">
+              ${movie.title}
+            </h3>
+            <p class="text-[11px] text-zinc-500 truncate mt-0.5">
+              ${isSliderItem ? `역대 ${movie.rank}위` : movie.genre} · ${movie.year}
+            </p>
+          </div>
+        </article>
+      `;
+    }
+
+    function filterMovies(list) {
+      return list.filter((m) => {
+        const matchesQuery = !state.searchQuery || m.title.toLowerCase().includes(state.searchQuery.toLowerCase());
+        const matchesWish = !state.onlyWatchlist || state.watchlist.has(m.id);
+        return matchesQuery && matchesWish;
+      });
+    }
+
+    function renderAll() {
+      const rankingEl = document.getElementById("rankingSlider");
+      const recommendEl = document.getElementById("recommendGrid");
+      const statusBar = document.getElementById("searchStatusBar");
+      const statusText = document.getElementById("searchStatusText");
+
+      const filteredRank = filterMovies(BOX_OFFICE_RANKING);
+      const filteredRec = filterMovies(RECOMMENDED_MOVIES);
+
+      rankingEl.innerHTML = filteredRank.length
+        ? filteredRank.map((m) => createMovieCardHTML(m, true)).join("")
+        : `<div class="w-full py-10 text-center text-sm text-zinc-500 border border-dashed border-white/15 rounded-2xl">조건에 맞는 순위 영화가 없습니다.</div>`;
+
+      recommendEl.innerHTML = filteredRec.length
+        ? filteredRec.map((m) => createMovieCardHTML(m, false)).join("")
+        : `<div class="col-span-full py-10 text-center text-sm text-zinc-500 border border-dashed border-white/15 rounded-2xl">조건에 맞는 추천 영화가 없습니다.</div>`;
+
+      document.getElementById("watchlistCount").textContent = String(state.watchlist.size);
+
+      if (state.searchQuery || state.onlyWatchlist) {
+        statusBar.classList.remove("hidden");
+        statusBar.classList.add("flex");
+        const parts = [];
+        if (state.searchQuery) parts.push(`"${state.searchQuery}" 검색 결과`);
+        if (state.onlyWatchlist) parts.push("찜한 영화 필터");
+        statusText.textContent = `${parts.join(" · ")} (순위 ${filteredRank.length}편, 추천 ${filteredRec.length}편)`;
+      } else {
+        statusBar.classList.add("hidden");
+        statusBar.classList.remove("flex");
+      }
+
+      updateSlideIndicator();
+    }
+
+    function updateAuthUI() {
+      const authArea = document.getElementById("authArea");
+      if (state.currentUser) {
+        authArea.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-1 text-xs font-semibold bg-[#2B00FF]/25 text-[#00F0FF] border border-[#00F0FF]/35 rounded-full">
+              ${state.currentUser.nickname}님
+            </span>
+            <button id="logoutBtn" type="button" class="px-3 py-1.5 text-xs font-medium text-zinc-200 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 rounded-full transition">
+              로그아웃
+            </button>
+          </div>
+        `;
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+          state.currentUser = null;
+          updateAuthUI();
+          showToast("로그아웃되었습니다.");
+        });
+      } else {
+        authArea.innerHTML = `
+          <button id="openLoginBtn" type="button" class="px-4 py-1.5 text-xs sm:text-sm font-medium text-white/90 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 hover:border-[#00F0FF]/50 rounded-full transition">
+            로그인
+          </button>
+          <button id="openSignupBtn" type="button" class="px-4 py-1.5 text-xs sm:text-sm font-semibold text-white btn-electric rounded-full transition">
+            회원가입
+          </button>
+        `;
+        document.getElementById("openLoginBtn").addEventListener("click", () => openModal("loginModal"));
+        document.getElementById("openSignupBtn").addEventListener("click", () => openModal("signupModal"));
+      }
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      el.classList.remove("hidden");
+      el.classList.add("flex");
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      el.classList.add("hidden");
+      el.classList.remove("flex");
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.classList.remove("hidden");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.add("hidden"), 2500);
+    }
+
+    function openMovieDetail(movieId) {
+      const all = [...BOX_OFFICE_RANKING, ...RECOMMENDED_MOVIES];
+      const movie = all.find((m) => m.id === movieId);
+      if (!movie) return;
+
+      const isSaved = state.watchlist.has(movie.id);
+      const [c1, c2, c3] = movie.palette;
+      document.getElementById("detailContent").innerHTML = `
+        <div class="h-36 relative p-5 flex flex-col justify-between"
+             style="background: linear-gradient(135deg, ${c1}, ${c2}, ${c3}88);">
+          <div class="flex items-center justify-between">
+            <span class="px-3 py-0.5 text-xs font-bold bg-black/55 text-[#00F0FF] rounded-full border border-[#00F0FF]/35">
+              역대 관객수 ${movie.rank}위
+            </span>
+            <button type="button" id="closeDetailBtn" class="w-8 h-8 rounded-full bg-black/45 text-white hover:bg-black/70 flex items-center justify-center transition">✕</button>
+          </div>
+          <h3 class="text-xl font-extrabold text-white drop-shadow">${movie.title}</h3>
+        </div>
+        <div class="p-5 space-y-4">
+          <div class="grid grid-cols-3 gap-2 text-center bg-black/35 border border-white/10 rounded-xl p-3">
+            <div>
+              <p class="text-[11px] text-zinc-400">개봉연도</p>
+              <p class="text-sm font-bold text-white mt-0.5">${movie.year}년</p>
+            </div>
+            <div>
+              <p class="text-[11px] text-zinc-400">장르</p>
+              <p class="text-sm font-bold text-white mt-0.5">${movie.genre.split(" · ")[0]}</p>
+            </div>
+            <div>
+              <p class="text-[11px] text-zinc-400">누적 관객수</p>
+              <p class="text-sm font-bold text-[#00F0FF] mt-0.5">${movie.audience}</p>
+            </div>
+          </div>
+          <p class="text-xs text-zinc-400 leading-relaxed">
+            대한민국 역대 박스오피스 관객수 ${movie.rank}위에 오른 작품입니다. 추후 상세 줄거리, 평점 및 OTT 스트리밍 데이터를 연결할 수 있도록 구조화되어 있습니다.
+          </p>
+          <div class="flex items-center gap-2.5">
+            <button type="button" id="modalWishBtn" class="flex-1 py-2.5 rounded-full text-sm font-semibold transition ${
+              isSaved
+                ? "btn-electric text-white"
+                : "bg-white/[0.06] text-white hover:bg-white/[0.12] border border-white/15"
+            }">
+              ${isSaved ? "♥ 찜한 영화에서 제거" : "♡ 보고싶어요 (찜하기)"}
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("closeDetailBtn").addEventListener("click", () => closeModal("detailModal"));
+      document.getElementById("modalWishBtn").addEventListener("click", () => {
+        toggleWish(movie.id);
+        openMovieDetail(movie.id);
+      });
+      openModal("detailModal");
+    }
+
+    function toggleWish(movieId) {
+      if (state.watchlist.has(movieId)) {
+        state.watchlist.delete(movieId);
+        showToast("찜 목록에서 제거했습니다.");
+      } else {
+        state.watchlist.add(movieId);
+        showToast("찜 목록에 추가했습니다.");
+      }
+      renderAll();
+    }
+
+    function updateSlideIndicator() {
+      const slider = document.getElementById("rankingSlider");
+      const indicator = document.getElementById("slideIndicator");
+      const maxScroll = slider.scrollWidth - slider.clientWidth;
+      if (maxScroll <= 0) {
+        indicator.textContent = "전체 보기";
+        return;
+      }
+      const ratio = slider.scrollLeft / maxScroll;
+      const start = Math.min(6, Math.max(1, Math.round(ratio * 5) + 1));
+      const end = Math.min(10, start + 4);
+      indicator.textContent = `${start}–${end} / 10`;
+    }
+
+    // 이벤트 바인딩
+    document.addEventListener("DOMContentLoaded", () => {
+      updateAuthUI();
+      renderAll();
+
+      const slider = document.getElementById("rankingSlider");
+      document.getElementById("prevSlideBtn").addEventListener("click", () => {
+        slider.scrollBy({ left: -slider.clientWidth * 0.75, behavior: "smooth" });
+      });
+      document.getElementById("nextSlideBtn").addEventListener("click", () => {
+        slider.scrollBy({ left: slider.clientWidth * 0.75, behavior: "smooth" });
+      });
+      slider.addEventListener("scroll", updateSlideIndicator);
+
+      // 카드 클릭 및 찜하기 위임
+      document.querySelector("main").addEventListener("click", (e) => {
+        const wishBtn = e.target.closest("[data-wish-id]");
+        if (wishBtn) {
+          e.stopPropagation();
+          toggleWish(Number(wishBtn.dataset.wishId));
+          return;
+        }
+        const card = e.target.closest("[data-movie-id]");
+        if (card) {
+          openMovieDetail(Number(card.dataset.movieId));
+        }
+      });
+
+      // 검색 및 필터
+      const searchInput = document.getElementById("searchInput");
+      searchInput.addEventListener("input", (e) => {
+        state.searchQuery = e.target.value.trim();
+        renderAll();
+      });
+
+      document.getElementById("clearSearchBtn").addEventListener("click", () => {
+        state.searchQuery = "";
+        state.onlyWatchlist = false;
+        searchInput.value = "";
+        document.getElementById("watchlistFilterBtn").classList.remove("border-[#00F0FF]", "text-[#00F0FF]");
+        renderAll();
+      });
+
+      document.getElementById("watchlistFilterBtn").addEventListener("click", (e) => {
+        state.onlyWatchlist = !state.onlyWatchlist;
+        e.currentTarget.classList.toggle("border-[#00F0FF]", state.onlyWatchlist);
+        e.currentTarget.classList.toggle("text-[#00F0FF]", state.onlyWatchlist);
+        renderAll();
+      });
+
+      // 모달 닫기
+      document.querySelectorAll("[data-close-modal]").forEach((btn) => {
+        btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
+      });
+      ["loginModal", "signupModal", "detailModal"].forEach((id) => {
+        document.getElementById(id).addEventListener("click", (e) => {
+          if (e.target.id === id) closeModal(id);
+        });
+      });
+
+      document.getElementById("switchToSignupBtn").addEventListener("click", () => {
+        closeModal("loginModal");
+        openModal("signupModal");
+      });
+      document.getElementById("switchToLoginBtn").addEventListener("click", () => {
+        closeModal("signupModal");
+        openModal("loginModal");
+      });
+
+      // 로그인 폼
+      document.getElementById("loginForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const idVal = document.getElementById("loginId").value.trim();
+        if (!idVal) return;
+        const nickname = idVal.includes("@") ? idVal.split("@")[0] : idVal;
+        state.currentUser = { nickname };
+        closeModal("loginModal");
+        e.target.reset();
+        updateAuthUI();
+        showToast(`${nickname}님, 환영합니다!`);
+      });
+
+      // 회원가입 폼
+      document.getElementById("signupForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const nickname = document.getElementById("signupNickname").value.trim();
+        const pw = document.getElementById("signupPw").value;
+        const pwConfirm = document.getElementById("signupPwConfirm").value;
+        const errEl = document.getElementById("signupError");
+
+        if (pw !== pwConfirm) {
+          errEl.textContent = "비밀번호가 일치하지 않습니다.";
+          errEl.classList.remove("hidden");
+          return;
+        }
+        errEl.classList.add("hidden");
+        state.currentUser = { nickname };
+        closeModal("signupModal");
+        e.target.reset();
+        updateAuthUI();
+        showToast(`${nickname}님, 회원가입이 완료되었습니다!`);
+      });
+    });
+  </script>
+</body>
+</html>
