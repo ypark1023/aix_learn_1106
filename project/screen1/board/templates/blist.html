@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoviePEDIA - 평점 게시판</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-void: #0D0D0E;
+      --bg-surface: #131317;
+      --accent-electric: #2B00FF;
+      --accent-violet: #4E12FF;
+      --accent-cyan: #00F0FF;
+    }
+    body {
+      font-family: 'Figtree', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #0D0D0E;
+      color: #FFFFFF;
+    }
+    .glass-panel {
+      background: rgba(20, 20, 26, 0.72);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+    .btn-electric {
+      background: linear-gradient(135deg, #2B00FF 0%, #4E12FF 100%);
+      box-shadow: 0 0 22px rgba(43, 0, 255, 0.45);
+    }
+    .btn-electric:hover {
+      background: linear-gradient(135deg, #3814FF 0%, #602BFF 100%);
+      box-shadow: 0 0 28px rgba(0, 240, 255, 0.35);
+    }
+    .star-glow {
+      text-shadow: 0 0 14px rgba(0, 240, 255, 0.55);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased relative overflow-x-hidden selection:bg-[#00F0FF]/25 selection:text-[#00F0FF]">
+
+  <!-- Dirol 2.0 스타일 앰비언트 배경 글로우 -->
+  <div class="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
+    <div class="absolute -top-44 left-1/2 -translate-x-1/2 w-[780px] h-[420px] rounded-full opacity-35 blur-[130px]"
+         style="background: radial-gradient(circle, #2B00FF 0%, #1B00C4 45%, transparent 75%);"></div>
+    <div class="absolute top-40 -right-32 w-[420px] h-[420px] rounded-full opacity-15 blur-[120px]"
+         style="background: radial-gradient(circle, #00F0FF 0%, transparent 70%);"></div>
+    <div class="absolute bottom-0 -left-32 w-[460px] h-[360px] rounded-full opacity-20 blur-[130px]"
+         style="background: radial-gradient(circle, #4E12FF 0%, transparent 70%);"></div>
+  </div>
+
+  <!-- 최상단 헤더: 좌측 햄버거 + 로그인/회원가입, 중앙 MoviePEDIA 제목, 우측 검색 -->
+  <header class="sticky top-0 z-40 border-b border-white/[0.08] bg-[#0D0D0E]/80 backdrop-blur-xl">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      
+      <!-- 좌측: 햄버거 메뉴 + 로그인 / 회원가입 -->
+      <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <button id="hamburgerBtn" type="button" aria-label="메뉴 열기" aria-expanded="false"
+                class="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/15 hover:border-[#00F0FF]/50 text-white transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div id="authArea" class="flex items-center gap-2 shrink-0">
+          <button id="openLoginBtn" type="button" class="px-4 py-1.5 text-xs sm:text-sm font-medium text-white/90 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 hover:border-[#00F0FF]/50 rounded-full transition">
+            로그인
+          </button>
+          <button id="openSignupBtn" type="button" class="px-4 py-1.5 text-xs sm:text-sm font-semibold text-white btn-electric rounded-full transition">
+            회원가입
+          </button>
+        </div>
+      </div>
+
+      <!-- 중앙: MoviePEDIA 제목 -->
+      <a href="#top" id="brandLogo" class="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-1 select-none">
+        <span class="text-white">Movie</span><span class="bg-gradient-to-r from-[#00F0FF] to-[#4E12FF] bg-clip-text text-transparent">PEDIA</span>
+      </a>
+
+      <!-- 우측: 빠른 검색 -->
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="relative">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="영화, 코멘트 검색..."
+            aria-label="평점 검색"
+            class="w-32 sm:w-48 md:w-56 pl-8 pr-3.5 py-1.5 text-xs sm:text-sm bg-white/[0.05] border border-white/15 focus:border-[#00F0FF]/70 focus:bg-white/[0.08] focus:outline-none rounded-full text-white placeholder-zinc-500 transition"
+          />
+          <svg class="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 -->
+  <main id="top" class="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8">
+
+    <!-- 상단 타이틀 & 평균 평점 요약 -->
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <h1 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">평점 게시판</h1>
+          <span class="px-2.5 py-0.5 text-[11px] font-bold bg-[#2B00FF]/25 text-[#00F0FF] border border-[#00F0FF]/35 rounded-full">
+            5점 만점 한줄평
+          </span>
+        </div>
+        <p class="text-xs text-zinc-400 mt-1.5">별 다섯 개로 영화를 평가하고 간단한 감상 코멘트를 남겨보세요.</p>
+      </div>
+
+      <!-- 통계 배지 -->
+      <div class="flex items-center gap-3 glass-panel px-4 py-2 rounded-full text-xs">
+        <span class="text-zinc-400">평균 별점</span>
+        <span id="avgRatingText" class="font-extrabold text-[#00F0FF] star-glow">★ 0.0</span>
+        <span class="text-zinc-600">|</span>
+        <span class="text-zinc-400">전체 <strong id="totalReviewsCount" class="text-white">0</strong>건</span>
+      </div>
+    </div>
+
+    <!-- 평점 작성 폼 카드 -->
+    <section aria-labelledby="writeReviewHeading" class="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl shadow-[#2B00FF]/10">
+      <h2 id="writeReviewHeading" class="text-sm sm:text-base font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-[#00F0FF]"></span>
+        새 평점 남기기
+      </h2>
+
+      <form id="reviewForm" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <!-- 영화 선택 -->
+          <div>
+            <label for="movieSelect" class="block text-xs font-medium text-zinc-400 mb-1.5">영화 선택</label>
+            <select id="movieSelect" required class="w-full px-3.5 py-2.5 text-sm bg-[#101014] border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition">
+              <!-- JS로 옵션 채움 -->
+            </select>
+          </div>
+
+          <!-- 작성자 닉네임 -->
+          <div>
+            <label for="authorInput" class="block text-xs font-medium text-zinc-400 mb-1.5">작성자</label>
+            <input id="authorInput" type="text" maxlength="20" placeholder="닉네임 (미입력 시 익명)" class="w-full px-3.5 py-2.5 text-sm bg-[#101014] border border-white/15 rounded-xl text-white placeholder-zinc-500 focus:border-[#00F0FF] focus:outline-none transition" />
+          </div>
+
+          <!-- 별점 5개 선택기 -->
+          <div>
+            <span class="block text-xs font-medium text-zinc-400 mb-1.5">별점 선택</span>
+            <div class="h-[42px] px-3.5 bg-[#101014] border border-white/15 rounded-xl flex items-center justify-between">
+              <div id="starSelector" class="flex items-center gap-1" role="radiogroup" aria-label="별점 선택">
+                <button type="button" data-star="1" aria-label="1점" class="star-btn text-xl leading-none text-zinc-600 hover:scale-110 transition">★</button>
+                <button type="button" data-star="2" aria-label="2점" class="star-btn text-xl leading-none text-zinc-600 hover:scale-110 transition">★</button>
+                <button type="button" data-star="3" aria-label="3점" class="star-btn text-xl leading-none text-zinc-600 hover:scale-110 transition">★</button>
+                <button type="button" data-star="4" aria-label="4점" class="star-btn text-xl leading-none text-zinc-600 hover:scale-110 transition">★</button>
+                <button type="button" data-star="5" aria-label="5점" class="star-btn text-xl leading-none text-zinc-600 hover:scale-110 transition">★</button>
+              </div>
+              <span id="selectedScoreLabel" class="text-xs font-bold text-[#00F0FF]">5.0 / 5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 코멘트 입력 -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="commentInput" class="text-xs font-medium text-zinc-400">한줄 코멘트</label>
+            <span id="charCount" class="text-[11px] text-zinc-500">0 / 200</span>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <textarea
+              id="commentInput"
+              rows="2"
+              maxlength="200"
+              required
+              placeholder="영화에 대한 간단한 감상평을 남겨주세요..."
+              class="flex-1 px-4 py-2.5 text-sm bg-[#101014] border border-white/15 rounded-xl text-white placeholder-zinc-500 focus:border-[#00F0FF] focus:outline-none resize-none transition"
+            ></textarea>
+            <button type="submit" class="sm:w-36 py-2.5 px-5 text-sm font-semibold text-white btn-electric rounded-full sm:rounded-xl transition shrink-0">
+              평점 등록
+            </button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- 필터 & 정렬 바 -->
+    <section aria-label="평점 목록 필터" class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2 flex-wrap">
+        <select id="filterMovieSelect" aria-label="영화별 필터" class="px-3.5 py-1.5 text-xs font-medium bg-white/[0.05] border border-white/15 rounded-full text-zinc-200 focus:border-[#00F0FF] focus:outline-none transition">
+          <option value="all" class="bg-[#131317]">전체 영화</option>
+        </select>
+        <button type="button" data-sort="latest" class="sort-btn px-3.5 py-1.5 text-xs font-semibold rounded-full btn-electric text-white transition">최신순</button>
+        <button type="button" data-sort="rating" class="sort-btn px-3.5 py-1.5 text-xs font-semibold rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-zinc-300 transition">별점순</button>
+        <button type="button" data-sort="likes" class="sort-btn px-3.5 py-1.5 text-xs font-semibold rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-zinc-300 transition">공감순</button>
+      </div>
+      <span id="pageSummary" class="text-xs text-zinc-400"></span>
+    </section>
+
+    <!-- 코멘트 리스트 -->
+    <section aria-label="평점 코멘트 목록">
+      <div id="reviewListContainer" class="flex flex-col gap-3.5">
+        <!-- JS로 평점 카드 렌더링 -->
+      </div>
+    </section>
+
+    <!-- 페이지네이터 -->
+    <nav id="paginatorNav" aria-label="페이지 탐색" class="pt-2 flex items-center justify-center gap-2"></nav>
+
+  </main>
+
+  <!-- 푸터 -->
+  <footer class="relative z-10 border-t border-white/[0.08] bg-[#09090B]/90 py-6 mt-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500">
+      <span><strong class="text-white font-bold">MoviePEDIA</strong> · 평점 & 한줄평 게시판</span>
+      <span>역대 관객수 TOP 10 기준 · 추후 백엔드(DB) 연동 가능 구조</span>
+    </div>
+  </footer>
+
+  <!-- 좌측 햄버거 사이드 메뉴 드로어 -->
+  <div id="navDrawerOverlay" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm transition-opacity">
+    <aside id="navDrawer" class="w-72 max-w-[82vw] h-full glass-panel border-r border-white/10 p-5 flex flex-col justify-between shadow-2xl shadow-[#2B00FF]/25">
+      <div>
+        <div class="flex items-center justify-between pb-4 border-b border-white/10">
+          <span class="text-lg font-black tracking-tight">
+            <a href='/'>
+            <span class="text-white">Movie</span><span class="bg-gradient-to-r from-[#00F0FF] to-[#4E12FF] bg-clip-text text-transparent">PEDIA</span></a>
+          </span>
+          <button id="closeDrawerBtn" type="button" aria-label="메뉴 닫기" class="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white flex items-center justify-center transition">✕</button>
+        </div>
+
+        <nav aria-label="메인 메뉴" class="mt-5 space-y-2">
+          <button id="navArchiveBtn" type="button" class="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold text-white bg-white/[0.04] hover:bg-[#2B00FF]/25 border border-white/10 hover:border-[#00F0FF]/50 transition">
+            <span>영화 아카이브</span>
+            <span class="text-xs text-[#00F0FF]">→</span>
+          </button>
+          <button id="navBoardBtn" type="button" class="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold text-[#00F0FF] bg-[#2B00FF]/20 border border-[#00F0FF]/40 transition">
+            <span>평점 게시판</span>
+            <span class="text-xs text-[#00F0FF]">현재 페이지</span>
+          </button>
+          <button id="navAuthBtn" type="button" class="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold text-white btn-electric transition">
+            <span id="navAuthLabel">로그인 / 회원가입</span>
+            <span class="text-xs text-white/90">→</span>
+          </button>
+        </nav>
+      </div>
+
+      <p class="text-[11px] text-zinc-500 pt-4 border-t border-white/10">
+        MoviePEDIA Navigation
+      </p>
+    </aside>
+  </div>
+
+  <!-- 로그인 모달 -->
+  <div id="loginModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="w-full max-w-sm glass-panel rounded-2xl p-6 shadow-2xl shadow-[#2B00FF]/20">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-extrabold text-white tracking-tight">로그인</h3>
+        <button type="button" data-close-modal="loginModal" class="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white flex items-center justify-center transition">✕</button>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="loginId" class="block text-xs font-medium text-zinc-400 mb-1.5">아이디 또는 이메일</label>
+          <input id="loginId" type="text" required placeholder="movie_fan@example.com" class="w-full px-4 py-2.5 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <div>
+          <label for="loginPw" class="block text-xs font-medium text-zinc-400 mb-1.5">비밀번호</label>
+          <input id="loginPw" type="password" required placeholder="••••••••" class="w-full px-4 py-2.5 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <button type="submit" class="w-full py-2.5 text-sm font-semibold text-white btn-electric rounded-full transition">로그인하기</button>
+      </form>
+      <p class="text-xs text-center text-zinc-400 mt-4">
+        아직 계정이 없으신가요?
+        <button id="switchToSignupBtn" type="button" class="text-[#00F0FF] hover:underline font-semibold ml-1">회원가입</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- 회원가입 모달 -->
+  <div id="signupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div class="w-full max-w-sm glass-panel rounded-2xl p-6 shadow-2xl shadow-[#2B00FF]/20">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-extrabold text-white tracking-tight">회원가입</h3>
+        <button type="button" data-close-modal="signupModal" class="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 hover:text-white flex items-center justify-center transition">✕</button>
+      </div>
+      <form id="signupForm" class="space-y-3.5">
+        <div>
+          <label for="signupNickname" class="block text-xs font-medium text-zinc-400 mb-1">닉네임</label>
+          <input id="signupNickname" type="text" required placeholder="예: 시네필" class="w-full px-4 py-2 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <div>
+          <label for="signupEmail" class="block text-xs font-medium text-zinc-400 mb-1">이메일</label>
+          <input id="signupEmail" type="email" required placeholder="movie_fan@example.com" class="w-full px-4 py-2 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <div>
+          <label for="signupPw" class="block text-xs font-medium text-zinc-400 mb-1">비밀번호</label>
+          <input id="signupPw" type="password" required minlength="4" placeholder="4자 이상 입력" class="w-full px-4 py-2 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <div>
+          <label for="signupPwConfirm" class="block text-xs font-medium text-zinc-400 mb-1">비밀번호 확인</label>
+          <input id="signupPwConfirm" type="password" required placeholder="비밀번호 재입력" class="w-full px-4 py-2 text-sm bg-black/40 border border-white/15 rounded-xl text-white focus:border-[#00F0FF] focus:outline-none transition" />
+        </div>
+        <p id="signupError" class="text-xs text-[#00F0FF] hidden"></p>
+        <button type="submit" class="w-full py-2.5 text-sm font-semibold text-white btn-electric rounded-full transition mt-1">가입 완료</button>
+      </form>
+      <p class="text-xs text-center text-zinc-400 mt-4">
+        이미 계정이 있으신가요?
+        <button id="switchToLoginBtn" type="button" class="text-[#00F0FF] hover:underline font-semibold ml-1">로그인</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 hidden px-5 py-2.5 rounded-full glass-panel text-xs sm:text-sm font-medium text-white shadow-xl shadow-[#2B00FF]/30"></div>
+
+  <script>
+    const MOVIES = [
+      { id: 1, title: "명량", year: 2014 },
+      { id: 2, title: "왕과 사는 남자", year: 2026 },
+      { id: 3, title: "극한직업", year: 2019 },
+      { id: 4, title: "신과함께-죄와 벌", year: 2017 },
+      { id: 5, title: "국제시장", year: 2014 },
+      { id: 6, title: "어벤져스: 엔드게임", year: 2019 },
+      { id: 7, title: "아바타", year: 2009 },
+      { id: 8, title: "겨울왕국 2", year: 2019 },
+      { id: 9, title: "베테랑", year: 2015 },
+      { id: 10, title: "서울의 봄", year: 2023 }
+    ];
+
+    const PAGE_SIZE = 5;
+
+    const state = {
+      currentUser: null,
+      selectedRating: 5,
+      hoverRating: 0,
+      filterMovieId: "all",
+      sortBy: "latest",
+      searchQuery: "",
+      currentPage: 1,
+      likedIds: new Set(),
+      reviews: [
+        { id: 106, movieId: 2, author: "청령포산책", rating: 5, comment: "단종과 엄흥도의 관계가 이렇게 먹먹할 줄 몰랐습니다. 유해진 배우의 연기가 오래 남네요.", likes: 24, createdAt: "2026-11-13 15:20", isMine: false },
+        { id: 105, movieId: 10, author: "시네마로그", rating: 5, comment: "12.12 그날 밤의 긴장감을 9시간처럼 체감하게 만드는 압도적인 연출과 연기력.", likes: 31, createdAt: "2026-11-13 13:45", isMine: false },
+        { id: 104, movieId: 3, author: "수원왕갈비", rating: 5, comment: "몇 번을 다시 봐도 대사 타율이 미쳤습니다. 스트레스 풀고 싶을 때 무조건 찾는 영화.", likes: 19, createdAt: "2026-11-12 21:10", isMine: false },
+        { id: 103, movieId: 1, author: "필름메이커", rating: 4, comment: "후반부 해전 시퀀스의 박력이 극장 사운드와 만나 폭발합니다. 웅장함 그 자체.", likes: 15, createdAt: "2026-11-12 18:05", isMine: false },
+        { id: 102, movieId: 6, author: "마블러버", rating: 5, comment: "10년 서사의 완벽한 피날레. 극장에서 모두가 함께 환호했던 순간을 잊을 수 없어요.", likes: 28, createdAt: "2026-11-11 22:30", isMine: false },
+        { id: 101, movieId: 9, author: "서도철반장", rating: 4, comment: "군더더기 없이 깔끔하고 통쾌한 범죄 액션. 리듬감이 정말 좋습니다.", likes: 11, createdAt: "2026-11-11 16:15", isMine: false }
+      ]
+    };
+
+    function getMovieById(id) {
+      return MOVIES.find((m) => m.id === id) || { title: "알 수 없는 영화", year: "" };
+    }
+
+    function renderStarDisplay(rating) {
+      let html = "";
+      for (let i = 1; i <= 5; i++) {
+        html += `<span class="${i <= rating ? "text-[#00F0FF] star-glow" : "text-zinc-700"}">★</span>`;
+      }
+      return html;
+    }
+
+    function updateStarSelectorUI() {
+      const activeVal = state.hoverRating || state.selectedRating;
+      document.querySelectorAll(".star-btn").forEach((btn) => {
+        const val = Number(btn.dataset.star);
+        if (val <= activeVal) {
+          btn.classList.remove("text-zinc-600");
+          btn.classList.add("text-[#00F0FF]", "star-glow");
+        } else {
+          btn.classList.add("text-zinc-600");
+          btn.classList.remove("text-[#00F0FF]", "star-glow");
+        }
+      });
+      document.getElementById("selectedScoreLabel").textContent = `${state.selectedRating}.0 / 5`;
+    }
+
+    function getFilteredReviews() {
+      const q = state.searchQuery.toLowerCase();
+      const list = state.reviews.filter((r) => {
+        const movie = getMovieById(r.movieId);
+        const matchesMovie = state.filterMovieId === "all" || r.movieId === Number(state.filterMovieId);
+        const matchesQuery =
+          !q ||
+          movie.title.toLowerCase().includes(q) ||
+          r.comment.toLowerCase().includes(q) ||
+          r.author.toLowerCase().includes(q);
+        return matchesMovie && matchesQuery;
+      });
+
+      if (state.sortBy === "rating") {
+        list.sort((a, b) => b.rating - a.rating || b.id - a.id);
+      } else if (state.sortBy === "likes") {
+        list.sort((a, b) => b.likes - a.likes || b.id - a.id);
+      } else {
+        list.sort((a, b) => b.id - a.id);
+      }
+      return list;
+    }
+
+    function renderPaginator(totalItems, totalPages) {
+      const nav = document.getElementById("paginatorNav");
+      if (totalItems === 0) {
+        nav.innerHTML = "";
+        return;
+      }
+
+      const prevDisabled = state.currentPage <= 1;
+      const nextDisabled = state.currentPage >= totalPages;
+
+      let pagesHTML = "";
+      for (let p = 1; p <= totalPages; p++) {
+        const isActive = p === state.currentPage;
+        pagesHTML += `
+          <button
+            type="button"
+            data-page="${p}"
+            aria-current="${isActive ? "page" : "false"}"
+            class="w-9 h-9 rounded-full text-xs sm:text-sm font-bold transition ${
+              isActive
+                ? "btn-electric text-white"
+                : "bg-white/[0.05] hover:bg-white/[0.12] text-zinc-300 border border-white/15"
+            }"
+          >
+            ${p}
+          </button>
+        `;
+      }
+
+      nav.innerHTML = `
+        <button type="button" data-page="${state.currentPage - 1}" ${prevDisabled ? "disabled" : ""}
+          class="px-3.5 h-9 rounded-full text-xs sm:text-sm font-medium bg-white/[0.05] hover:bg-white/[0.12] text-zinc-200 border border-white/15 transition disabled:opacity-35 disabled:pointer-events-none">
+          ‹ 이전
+        </button>
+        <div class="flex items-center gap-1.5">${pagesHTML}</div>
+        <button type="button" data-page="${state.currentPage + 1}" ${nextDisabled ? "disabled" : ""}
+          class="px-3.5 h-9 rounded-full text-xs sm:text-sm font-medium bg-white/[0.05] hover:bg-white/[0.12] text-zinc-200 border border-white/15 transition disabled:opacity-35 disabled:pointer-events-none">
+          다음 ›
+        </button>
+      `;
+    }
+
+    function renderAll() {
+      // 통계 업데이트
+      const totalAll = state.reviews.length;
+      const avg = totalAll ? (state.reviews.reduce((sum, r) => sum + r.rating, 0) / totalAll).toFixed(1) : "0.0";
+      document.getElementById("avgRatingText").textContent = `★ ${avg}`;
+      document.getElementById("totalReviewsCount").textContent = String(totalAll);
+
+      // 필터 & 페이지네이션
+      const filtered = getFilteredReviews();
+      const totalItems = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+      if (state.currentPage > totalPages) state.currentPage = totalPages;
+
+      const startIdx = (state.currentPage - 1) * PAGE_SIZE;
+      const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+      const container = document.getElementById("reviewListContainer");
+      container.innerHTML = pageItems.length
+        ? pageItems.map((r) => {
+            const movie = getMovieById(r.movieId);
+            const isLiked = state.likedIds.has(r.id);
+            return `
+              <article class="glass-panel rounded-2xl p-4 sm:p-5 hover:border-[#00F0FF]/40 transition">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-[#2B00FF]/30 text-[#00F0FF] border border-[#00F0FF]/35">
+                      ${movie.title}
+                    </span>
+                    <div class="flex items-center gap-0.5 text-sm" aria-label="${r.rating}점">
+                      ${renderStarDisplay(r.rating)}
+                    </div>
+                    <span class="text-xs font-bold text-white">${r.rating}.0</span>
+                  </div>
+                  <span class="text-[11px] text-zinc-500">${r.createdAt}</span>
+                </div>
+
+                <p class="text-sm text-zinc-200 leading-relaxed mb-3">${r.comment}</p>
+
+                <div class="flex items-center justify-between gap-2 pt-2.5 border-t border-white/[0.07]">
+                  <span class="text-xs font-medium text-zinc-400">작성자 <strong class="text-zinc-200">${r.author}</strong></span>
+                  <div class="flex items-center gap-2">
+                    <button type="button" data-like-id="${r.id}"
+                      class="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition ${
+                        isLiked
+                          ? "bg-[#2B00FF] text-[#00F0FF] border border-[#00F0FF]/50"
+                          : "bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 border border-white/15"
+                      }">
+                      <span>👍</span>
+                      <span>${r.likes}</span>
+                    </button>
+                    ${r.isMine ? `
+                      <button type="button" data-delete-id="${r.id}"
+                        class="px-2.5 py-1 rounded-full text-xs font-medium bg-white/[0.04] hover:bg-rose-500/20 text-zinc-400 hover:text-rose-300 border border-white/10 transition">
+                        삭제
+                      </button>
+                    ` : ""}
+                  </div>
+                </div>
+              </article>
+            `;
+          }).join("")
+        : `<div class="py-12 text-center text-sm text-zinc-500 glass-panel rounded-2xl">조건에 맞는 평점이 없습니다. 첫 번째 한줄평을 남겨보세요!</div>`;
+
+      const summaryEl = document.getElementById("pageSummary");
+      if (totalItems > 0) {
+        summaryEl.textContent = `총 ${totalItems}건 중 ${startIdx + 1}–${startIdx + pageItems.length}건 (${state.currentPage} / ${totalPages} 페이지)`;
+      } else {
+        summaryEl.textContent = "0건";
+      }
+
+      renderPaginator(totalItems, totalPages);
+    }
+
+    function populateMovieSelects() {
+      const writeSelect = document.getElementById("movieSelect");
+      const filterSelect = document.getElementById("filterMovieSelect");
+      const optionsHTML = MOVIES.map((m) => `<option value="${m.id}" class="bg-[#131317]">${m.title} (${m.year})</option>`).join("");
+      writeSelect.innerHTML = optionsHTML;
+      filterSelect.innerHTML = `<option value="all" class="bg-[#131317]">전체 영화</option>` + optionsHTML;
+    }
+
+    function updateAuthUI() {
+      const authArea = document.getElementById("authArea");
+      const authorInput = document.getElementById("authorInput");
+      if (state.currentUser) {
+        authArea.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-1 text-xs font-semibold bg-[#2B00FF]/25 text-[#00F0FF] border border-[#00F0FF]/35 rounded-full">
+              ${state.currentUser.nickname}님
+            </span>
+            <button id="logoutBtn" type="button" class="px-3 py-1.5 text-xs font-medium text-zinc-200 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 rounded-full transition">
+              로그아웃
+            </button>
+          </div>
+        `;
+        if (authorInput && !authorInput.value) authorInput.value = state.currentUser.nickname;
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+          state.currentUser = null;
+          updateAuthUI();
+          showToast("로그아웃되었습니다.");
+        });
+      } else {
+        authArea.innerHTML = `
+          <button id="openLoginBtn" type="button" class="px-4 py-1.5 text-xs sm:text-sm font-medium text-white/90 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 hover:border-[#00F0FF]/50 rounded-full transition">
+            로그인
+          </button>
+          <button id="openSignupBtn" type="button" class="px-4 py-1.5 text-xs sm:text-sm font-semibold text-white btn-electric rounded-full transition">
+            회원가입
+          </button>
+        `;
+        document.getElementById("openLoginBtn").addEventListener("click", () => openModal("loginModal"));
+        document.getElementById("openSignupBtn").addEventListener("click", () => openModal("signupModal"));
+      }
+    }
+
+    function openDrawer() {
+      const overlay = document.getElementById("navDrawerOverlay");
+      const btn = document.getElementById("hamburgerBtn");
+      const label = document.getElementById("navAuthLabel");
+      if (label) {
+        label.textContent = state.currentUser ? `${state.currentUser.nickname}님 (로그아웃)` : "로그인 / 회원가입";
+      }
+      overlay.classList.remove("hidden");
+      btn.setAttribute("aria-expanded", "true");
+    }
+
+    function closeDrawer() {
+      const overlay = document.getElementById("navDrawerOverlay");
+      const btn = document.getElementById("hamburgerBtn");
+      overlay.classList.add("hidden");
+      btn.setAttribute("aria-expanded", "false");
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      el.classList.remove("hidden");
+      el.classList.add("flex");
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      el.classList.add("hidden");
+      el.classList.remove("flex");
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.classList.remove("hidden");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.add("hidden"), 2500);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      populateMovieSelects();
+      updateStarSelectorUI();
+      updateAuthUI();
+      renderAll();
+
+      // 별점 5개 선택기
+      const starSelector = document.getElementById("starSelector");
+      starSelector.addEventListener("mouseover", (e) => {
+        const btn = e.target.closest(".star-btn");
+        if (!btn) return;
+        state.hoverRating = Number(btn.dataset.star);
+        updateStarSelectorUI();
+      });
+      starSelector.addEventListener("mouseleave", () => {
+        state.hoverRating = 0;
+        updateStarSelectorUI();
+      });
+      starSelector.addEventListener("click", (e) => {
+        const btn = e.target.closest(".star-btn");
+        if (!btn) return;
+        state.selectedRating = Number(btn.dataset.star);
+        updateStarSelectorUI();
+      });
+
+      // 코멘트 글자 수 카운터
+      const commentInput = document.getElementById("commentInput");
+      const charCount = document.getElementById("charCount");
+      commentInput.addEventListener("input", () => {
+        charCount.textContent = `${commentInput.value.length} / 200`;
+      });
+
+      // 평점 등록
+      document.getElementById("reviewForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const movieId = Number(document.getElementById("movieSelect").value);
+        const authorVal = document.getElementById("authorInput").value.trim();
+        const commentVal = commentInput.value.trim();
+        if (!commentVal) return;
+
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+        state.reviews.unshift({
+          id: Date.now(),
+          movieId,
+          author: authorVal || (state.currentUser ? state.currentUser.nickname : "익명 시네필"),
+          rating: state.selectedRating,
+          comment: commentVal,
+          likes: 0,
+          createdAt: timestamp,
+          isMine: true
+        });
+
+        commentInput.value = "";
+        charCount.textContent = "0 / 200";
+        state.currentPage = 1;
+        renderAll();
+        showToast("평점과 코멘트가 등록되었습니다!");
+      });
+
+      // 코멘트 공감 / 삭제 위임
+      document.getElementById("reviewListContainer").addEventListener("click", (e) => {
+        const likeBtn = e.target.closest("[data-like-id]");
+        if (likeBtn) {
+          const id = Number(likeBtn.dataset.likeId);
+          const item = state.reviews.find((r) => r.id === id);
+          if (!item) return;
+          if (state.likedIds.has(id)) {
+            state.likedIds.delete(id);
+            item.likes = Math.max(0, item.likes - 1);
+          } else {
+            state.likedIds.add(id);
+            item.likes += 1;
+          }
+          renderAll();
+          return;
+        }
+        const delBtn = e.target.closest("[data-delete-id]");
+        if (delBtn) {
+          const id = Number(delBtn.dataset.deleteId);
+          state.reviews = state.reviews.filter((r) => r.id !== id);
+          renderAll();
+          showToast("작성한 코멘트를 삭제했습니다.");
+        }
+      });
+
+      // 정렬 / 필터 / 검색 / 페이지네이터
+      document.getElementById("filterMovieSelect").addEventListener("change", (e) => {
+        state.filterMovieId = e.target.value;
+        state.currentPage = 1;
+        renderAll();
+      });
+
+      document.querySelectorAll(".sort-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.sortBy = btn.dataset.sort;
+          state.currentPage = 1;
+          document.querySelectorAll(".sort-btn").forEach((b) => {
+            const active = b.dataset.sort === state.sortBy;
+            b.className = active
+              ? "sort-btn px-3.5 py-1.5 text-xs font-semibold rounded-full btn-electric text-white transition"
+              : "sort-btn px-3.5 py-1.5 text-xs font-semibold rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-zinc-300 transition";
+          });
+          renderAll();
+        });
+      });
+
+      document.getElementById("searchInput").addEventListener("input", (e) => {
+        state.searchQuery = e.target.value.trim();
+        state.currentPage = 1;
+        renderAll();
+      });
+
+      document.getElementById("paginatorNav").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-page]");
+        if (!btn || btn.disabled) return;
+        state.currentPage = Number(btn.dataset.page);
+        renderAll();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+
+      // 햄버거 메뉴 바인딩
+      document.getElementById("hamburgerBtn").addEventListener("click", openDrawer);
+      document.getElementById("closeDrawerBtn").addEventListener("click", closeDrawer);
+      document.getElementById("navDrawerOverlay").addEventListener("click", (e) => {
+        if (e.target.id === "navDrawerOverlay") closeDrawer();
+      });
+      document.getElementById("navArchiveBtn").addEventListener("click", () => {
+        closeDrawer();
+        window.location.href = "/screen/slist/";
+      });
+      document.getElementById("navBoardBtn").addEventListener("click", () => {
+        closeDrawer();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      document.getElementById("navAuthBtn").addEventListener("click", () => {
+        closeDrawer();
+        if (state.currentUser) {
+          state.currentUser = null;
+          updateAuthUI();
+          showToast("로그아웃되었습니다.");
+        } else {
+          openModal("loginModal");
+        }
+      });
+
+      // 모달 닫기 및 인증 폼
+      document.querySelectorAll("[data-close-modal]").forEach((btn) => {
+        btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
+      });
+      ["loginModal", "signupModal"].forEach((id) => {
+        document.getElementById(id).addEventListener("click", (e) => {
+          if (e.target.id === id) closeModal(id);
+        });
+      });
+      document.getElementById("switchToSignupBtn").addEventListener("click", () => {
+        closeModal("loginModal");
+        openModal("signupModal");
+      });
+      document.getElementById("switchToLoginBtn").addEventListener("click", () => {
+        closeModal("signupModal");
+        openModal("loginModal");
+      });
+
+      document.getElementById("loginForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const idVal = document.getElementById("loginId").value.trim();
+        if (!idVal) return;
+        const nickname = idVal.includes("@") ? idVal.split("@")[0] : idVal;
+        state.currentUser = { nickname };
+        closeModal("loginModal");
+        e.target.reset();
+        updateAuthUI();
+        showToast(`${nickname}님, 환영합니다!`);
+      });
+
+      document.getElementById("signupForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const nickname = document.getElementById("signupNickname").value.trim();
+        const pw = document.getElementById("signupPw").value;
+        const pwConfirm = document.getElementById("signupPwConfirm").value;
+        const errEl = document.getElementById("signupError");
+
+        if (pw !== pwConfirm) {
+          errEl.textContent = "비밀번호가 일치하지 않습니다.";
+          errEl.classList.remove("hidden");
+          return;
+        }
+        errEl.classList.add("hidden");
+        state.currentUser = { nickname };
+        closeModal("signupModal");
+        e.target.reset();
+        updateAuthUI();
+        showToast(`${nickname}님, 회원가입이 완료되었습니다!`);
+      });
+    });
+  </script>
+</body>
+</html>
