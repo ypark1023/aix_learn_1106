@@ -3,12 +3,14 @@ import json
 import joblib
 import numpy as np # numpy 임포트 확인
 import pandas as pd # pandas 임포트 확인
+from pathlib import Path
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.conf import settings
 import traceback
 
-MODEL_PATH = os.path.join(settings.BASE_DIR, 'model.joblib')
+# MODEL_PATH = os.path.join(settings.BASE_DIR, 'model.joblib')
+MODEL_PATH = os.path.join(settings.BASE_DIR, 'model2.joblib')
 CSV_PATH = os.path.join(settings.BASE_DIR, 'perch_full.csv')
 
 model = joblib.load(MODEL_PATH)
@@ -23,49 +25,142 @@ perch_weight = [
     1000.0, 1000.0
 ]
 
-def index(request):
-    df = pd.read_csv(CSV_PATH)
-    df.columns = df.columns.str.strip()
 
-    base_fish_data = []
-    for idx, row in df.iterrows():
-        base_fish_data.append({
-            'x': float(row['length']),
-            'y': float(perch_weight[idx]),
-            'height': float(row['height']),
-            'width': float(row['width'])
-        })
 
+#Species	Weight,Length,Diagonal,Height,Width
+#0	Bream	242.0,25.4,30.0,11.52,4.0200
+#1	Bream	290.0,26.3,31.2,12.48,4.3056
+
+# 퀴즈 버전 ########################################     
+
+def ajax_data(request):
+    data = request.POST.get('data','242.0,25.4,30.0,11.52,4.0200')
+
+    # 파일 변환
+    in_data = data
+    in_data = in_data.split(',')
+    result = list(map(float,in_data))
+
+    # 예측
+    print('입력데이터 : ',result)
+    result = model.predict([result])
+    print(f'예측생선 : {result[0]} g')
+    # 파일전달
     context = {
-        'base_fish_data': base_fish_data
+        'result_data':f'{result}','result':'success'
     }
-    return render(request, 'index.html', context)
+    return JsonResponse(context)
 
 
-def predict_weight(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            length = float(data.get('length'))
-            height = float(data.get('height'))
-            width = float(data.get('width'))
+# 메인페이지
+def index(request):
+    # BASE_DIR = Path(__file__).resolve().parent.parent
+    # model = joblib.load(BASE_DIR / "model.joblib")
+    # # 예측
+    # in_data = '40,11.73,7.22'
+    # in_data = in_data.split(',')
+    # result = list(map(float,in_data))
 
-            # DataFrame 대신 2차원 NumPy 배열로 전달하여 컬럼명 불일치 에러 원천 차단
-            input_array = np.array([[length, height, width]])
+    #예측
+    # print('입력데이터 : ',result)
+    # result = model.predict([result])
+    # print(f'예측무게 : {result[0]:.2f} g')
+    # print("주소 : ",BASE_DIR)
+
+    return render(request,'index.html')
+
+
+
+
+# 수업 버전 ########################################     
+
+# def ajax_data(request):
+#     data = request.POST.get('data','40,11.73,7.22')
+#     BASE_DIR = Path(__file__).resolve().parent.parent
+#     model = joblib.load(BASE_DIR / "model.joblib")
+    
+#     # 파일 변환
+#     in_data = data
+#     in_data = in_data.split(',')
+#     result = list(map(float,in_data))
+
+#     # 예측
+#     print('입력데이터 : ',result)
+#     result = model.predict([result])
+#     print(f'예측무게 : {result[0]:.2f} g')
+#     # 파일전달
+#     context = {
+#         'result_data':f'{result[0]:.2f}','result':'success'
+#     }
+#     return JsonResponse(context)
+
+
+# # 메인페이지
+# def index(request):
+#     # BASE_DIR = Path(__file__).resolve().parent.parent
+#     # model = joblib.load(BASE_DIR / "model.joblib")
+#     # # 예측
+#     # in_data = '40,11.73,7.22'
+#     # in_data = in_data.split(',')
+#     # result = list(map(float,in_data))
+
+#     #예측
+#     # print('입력데이터 : ',result)
+#     # result = model.predict([result])
+#     # print(f'예측무게 : {result[0]:.2f} g')
+#     # print("주소 : ",BASE_DIR)
+
+#     return render(request,'index.html')
+
+
+
+
+# 그래프 있는 버전 ########################################     
+# def index(request):
+#     df = pd.read_csv(CSV_PATH)
+#     df.columns = df.columns.str.strip()
+
+#     base_fish_data = []
+#     for idx, row in df.iterrows():
+#         base_fish_data.append({
+#             'x': float(row['length']),
+#             'y': float(perch_weight[idx]),
+#             'height': float(row['height']),
+#             'width': float(row['width'])
+#         })
+
+#     context = {
+#         'base_fish_data': base_fish_data
+#     }
+#     return render(request, 'index.html', context)
+
+
+# def predict_weight(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             length = float(data.get('length'))
+#             height = float(data.get('height'))
+#             width = float(data.get('width'))
+
+#             # DataFrame 대신 2차원 NumPy 배열로 전달하여 컬럼명 불일치 에러 원천 차단
+#             input_array = np.array([[length, height, width]])
             
-            predicted = model.predict(input_array)[0]
-            final_weight = round(max(0.0, float(predicted)), 1)
+#             predicted = model.predict(input_array)[0]
+#             final_weight = round(max(0.0, float(predicted)), 1)
 
-            return JsonResponse({'status': 'success', 'weight': final_weight})
+#             return JsonResponse({'status': 'success', 'weight': final_weight})
         
-        except Exception as e:
-            print("=== 예측 에러 발생 ===")
-            traceback.print_exc()
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+#         except Exception as e:
+#             print("=== 예측 에러 발생 ===")
+#             traceback.print_exc()
+#             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-    return JsonResponse({'status': 'error', 'message': 'POST 요청만 허용됩니다.'}, status=405)
+#     return JsonResponse({'status': 'error', 'message': 'POST 요청만 허용됩니다.'}, status=405)
 
-        
+
+
+# 그래프 없는 버전 ########################################        
 # import os
 # import json
 # import joblib

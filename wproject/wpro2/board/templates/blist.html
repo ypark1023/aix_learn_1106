@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생선 무게 예측 기록</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f7f5f0; /* 동일한 크림 베이지 배경 */
+            color: #2c3531;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 100px 24px 60px;
+        }
+
+        /* 좌상단 물고기 아이콘 헤더 (120% 비율 유지) */
+        .top-header {
+            position: absolute;
+            top: 34px;
+            left: 38px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: #2c3531;
+        }
+
+        .fish-icon {
+            width: 44px;
+            height: 44px;
+            fill: #3b7a57;
+            transition: transform 0.2s ease;
+        }
+
+        .top-header:hover .fish-icon {
+            transform: scale(1.08) rotate(-5deg);
+        }
+
+        .brand-text {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: #4a5550;
+        }
+
+        /* 메인 테이블 카드 컨테이너 (120% 확대 비율 적용) */
+        .history-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 900px; /* 테이블이 시원하게 보이도록 너비 확장 */
+            padding: 48px 44px;
+            border-radius: 24px;
+            box-shadow: 0 14px 38px rgba(44, 53, 49, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        /* 상단 제목 및 버튼 영역 */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 34px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .title-group .title {
+            font-size: 29px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1e2623;
+        }
+
+        .title-group .subtitle {
+            font-size: 17px;
+            color: #7c8883;
+        }
+
+        /* 예측 페이지 이동 버튼 */
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 13px 24px;
+            background-color: #3b7a57;
+            color: #ffffff;
+            font-size: 17px;
+            font-weight: 600;
+            border-radius: 14px;
+            text-decoration: none;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .nav-btn:hover {
+            background-color: #2e6246;
+            transform: translateY(-2px);
+        }
+
+        /* 테이블 영역 */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1.5px solid #e2e6e4;
+        }
+
+        .record-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            background-color: #ffffff;
+        }
+
+        .record-table thead {
+            background-color: #f0f4f2;
+            border-bottom: 2px solid #dce5e0;
+        }
+
+        .record-table th {
+            padding: 18px 16px;
+            font-size: 17px;
+            font-weight: 700;
+            color: #3d4843;
+            white-space: nowrap;
+        }
+
+        .record-table td {
+            padding: 18px 16px;
+            font-size: 18px;
+            color: #2c3531;
+            border-bottom: 1px solid #eef1ef;
+        }
+
+        .record-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .record-table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+        .record-table tbody tr:hover {
+            background-color: #fafbfa;
+        }
+
+        /* 번호 및 단위 스타일 */
+        .row-num {
+            font-weight: 600;
+            color: #8c9893;
+        }
+
+        .unit-text {
+            font-size: 15px;
+            color: #8c9893;
+            margin-left: 3px;
+        }
+
+        /* 예측 무게 강조 스타일 */
+        .weight-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            background-color: #f0f4f2;
+            color: #27593d;
+            font-size: 20px;
+            font-weight: 800;
+            border-radius: 10px;
+            border: 1px solid #dce5e0;
+        }
+
+        /* 데이터가 없을 때 표시할 빈 상태 디자인 */
+        .empty-row td {
+            padding: 48px 20px;
+            font-size: 18px;
+            color: #8c9893;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 좌상단 물고기 아이콘 -->
+    <a href="index.html" class="top-header">
+        <svg class="fish-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12,6 C16.5,6 20.5,8.5 22.5,12 C20.5,15.5 16.5,18 12,18 C8.5,18 5.5,16.5 3.5,14.5 L1,17 L1,7 L3.5,9.5 C5.5,7.5 8.5,6 12,6 Z M16.5,10.5 C15.67,10.5 15,11.17 15,12 C15,12.83 15.67,13.5 16.5,13.5 C17.33,13.5 18,12.83 18,12 C18,11.17 17.33,10.5 16.5,10.5 Z"/>
+        </svg>
+        <span class="brand-text">Fish Weight AI</span>
+    </a>
+
+    <!-- 메인 기록 테이블 카드 -->
+    <main class="history-card">
+        <div class="card-header">
+            <div class="title-group">
+                <h1 class="title">생선 무게 예측 기록</h1>
+                <p class="subtitle">입력한 생선의 길이, 높이, 두께와 예측된 무게 데이터 목록입니다.</p>
+            </div>
+            <!-- 이전 입력 페이지 파일명에 맞춰 href를 수정하세요 -->
+            <a href="index.html" class="nav-btn">+ 새 생선 예측하기</a>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="record-table">
+                <thead>
+                    <tr>
+                        <th>번호</th>
+                        <th>길이 (Length)</th>
+                        <th>높이 (Height)</th>
+                        <th>두께 (Width)</th>
+                        <th>예측 무게 (Weight)</th>
+                    </tr>
+                </thead>
+                <tbody id="recordTableBody">
+                    <!-- 샘플 데이터 (Django 템플릿 태그 또는 JS로 렌더링할 영역) -->
+                    <tr>
+                        <td class="row-num">1</td>
+                        <td>25.4<span class="unit-text">cm</span></td>
+                        <td>11.5<span class="unit-text">cm</span></td>
+                        <td>4.0<span class="unit-text">cm</span></td>
+                        <td>
+                            <span class="weight-badge">242.9<span class="unit-text">g</span></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="row-num">2</td>
+                        <td>30.0<span class="unit-text">cm</span></td>
+                        <td>12.4<span class="unit-text">cm</span></td>
+                        <td>4.7<span class="unit-text">cm</span></td>
+                        <td>
+                            <span class="weight-badge">343.7<span class="unit-text">g</span></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="row-num">3</td>
+                        <td>35.0<span class="unit-text">cm</span></td>
+                        <td>14.2<span class="unit-text">cm</span></td>
+                        <td>5.3<span class="unit-text">cm</span></td>
+                        <td>
+                            <span class="weight-badge">464.1<span class="unit-text">g</span></span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+</body>
+</html>

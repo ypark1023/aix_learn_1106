@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생선 무게 예측 및 시각화</title>
+
+
+    <script  src="http://code.jquery.com/jquery-latest.min.js"></script>
+
+    <!-- Chart.js CDN 불러오기 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js 대신 3D 그래프를 지원하는 Plotly.js 불러오기 -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
+<!-- -->
+    <script>
+        function sendBtn() {
+            const data = $('#data').val();
+            console.log('데이터:' +data)
+            $.ajax({
+                url:'/ajax_data/',
+                type:'post',
+                header: {'X-CSRFToken':'{{csrf_token}}'},
+                data: {'data':send_data},
+                dataType: 'json'
+                success: function(data){
+                    alert('성공');
+                    console.log(data);
+                }, fail:function(){
+                   alert('예측 오류'); 
+                }
+            })
+
+        }
+    </script> <!-- --> 
+
+
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f7f5f0;
+            color: #2c3531;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 100px 32px 48px;
+        }
+
+        /* 좌상단 물고기 아이콘 헤더 */
+        .top-header {
+            position: absolute;
+            top: 34px;
+            left: 38px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: #2c3531;
+        }
+
+        .fish-icon {
+            width: 44px;
+            height: 44px;
+            fill: #3b7a57;
+            transition: transform 0.2s ease;
+        }
+
+        .top-header:hover .fish-icon {
+            transform: scale(1.08) rotate(-5deg);
+        }
+
+        .brand-text {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: #4a5550;
+        }
+
+        /* 좌우 2단 레이아웃 컨테이너 */
+        .dashboard-container {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 32px;
+            width: 100%;
+            max-width: 1240px;
+        }
+
+        /* 좌측: 입력 카드 (기존 120% 크기 유지) */
+        .predictor-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 480px;
+            flex-shrink: 0;
+            padding: 48px 44px;
+            border-radius: 24px;
+            box-shadow: 0 14px 38px rgba(44, 53, 49, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        /* 우측: 그래프 카드 */
+        .chart-card {
+            background: #ffffff;
+            flex-grow: 1;
+            padding: 48px 44px;
+            border-radius: 24px;
+            box-shadow: 0 14px 38px rgba(44, 53, 49, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .title {
+            font-size: 29px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #1e2623;
+        }
+
+        .subtitle {
+            font-size: 17px;
+            text-align: center;
+            color: #7c8883;
+            margin-bottom: 36px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #3d4843;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 16px 52px 16px 20px;
+            font-size: 19px;
+            border: 2px solid #e2e6e4;
+            border-radius: 14px;
+            background-color: #fafbfa;
+            color: #2c3531;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .input-wrapper input:focus {
+            border-color: #3b7a57;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 5px rgba(59, 122, 87, 0.1);
+        }
+
+        .unit {
+            position: absolute;
+            right: 20px;
+            font-size: 17px;
+            font-weight: 500;
+            color: #8c9893;
+            pointer-events: none;
+        }
+
+        .predict-btn {
+            width: 100%;
+            margin-top: 8px;
+            padding: 18px;
+            background-color: #3b7a57;
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 700;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .predict-btn:hover {
+            background-color: #2e6246;
+        }
+
+        .predict-btn:active {
+            transform: scale(0.99);
+        }
+
+        .result-box {
+            margin-top: 32px;
+            padding: 29px;
+            background-color: #f0f4f2;
+            border-radius: 17px;
+            text-align: center;
+            border: 1px solid #dce5e0;
+        }
+
+        .result-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #5c6e65;
+            margin-bottom: 8px;
+        }
+
+        .result-value-wrap {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .result-value {
+            font-size: 41px;
+            font-weight: 800;
+            color: #27593d;
+        }
+
+        .result-unit {
+            font-size: 22px;
+            font-weight: 600;
+            color: #5c6e65;
+        }
+
+        /* 캔버스 래퍼 */
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            flex-grow: 1;
+            min-height: 420px;
+        }
+
+        /* 화면이 좁아질 때 위아래로 배치 */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .predictor-card, .chart-card {
+                max-width: 600px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="/" class="top-header">
+        <svg class="fish-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12,6 C16.5,6 20.5,8.5 22.5,12 C20.5,15.5 16.5,18 12,18 C8.5,18 5.5,16.5 3.5,14.5 L1,17 L1,7 L3.5,9.5 C5.5,7.5 8.5,6 12,6 Z M16.5,10.5 C15.67,10.5 15,11.17 15,12 C15,12.83 15.67,13.5 16.5,13.5 C17.33,13.5 18,12.83 18,12 C18,11.17 17.33,10.5 16.5,10.5 Z"/>
+        </svg>
+        <span class="brand-text">Fish Weight AI</span>
+    </a>
+
+    <!-- 좌우 2단 컨테이너 -->
+    <div class="dashboard-container">
+
+        <!-- 1. 좌측 입력 카드 -->
+        <main class="predictor-card">
+            <h1 class="title">생선 무게 예측</h1>
+            <p class="subtitle">길이, 높이, 두께를 입력하고 버튼을 눌러주세요.</p>
+
+            <form id="fishForm">
+                {% csrf_token %}
+                <div class="input-group">
+                    <label for="length">생선 길이 (Length)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="length" step="0.01" min="0" placeholder="예: 25.4" required>
+                        <span class="unit">cm</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="height">생선 높이 (Height)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="height" step="0.01" min="0" placeholder="예: 7.2" required>
+                        <span class="unit">cm</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="width">생선 두께 (Width)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="width" step="0.01" min="0" placeholder="예: 4.1" required>
+                        <span class="unit">cm</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="predict-btn">무게 예측하기</button>
+            </form>
+
+            <div class="result-box">
+                <div class="result-label">예측된 생선 무게</div>
+                <div class="result-value-wrap">
+                    <span id="predictedWeight" class="result-value">0.0</span>
+                    <span class="result-unit">g</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- 2. 우측 3D 그래프 카드 -->
+        <section class="chart-card">
+            <div>
+                <h2 class="title">농어 3D 데이터 분포</h2>
+                <p class="subtitle">마우스로 드래그해 회전해 보세요.</p>
+            </div>
+            <!-- canvas 대신 div 사용 -->
+            <div id="fish3DChart" class="canvas-wrapper" style="min-height: 480px;"></div>
+        </section>
+
+    </div>
+
+    <!-- Django의 json_script 필터로 안전하게 데이터 렌더링 -->
+    {{ base_fish_data|json_script:"fish-data-json" }}
+
+    <script>
+        // 1. views.py에서 넘어온 데이터 파싱
+        // (x: 길이, height: 높이, width: 두께, y: 무게)
+        const baseFishData = JSON.parse(document.getElementById('fish-data-json').textContent);
+
+        // 2. 기존 농어 56마리 3D 데이터셋 (Trace 0)
+        const baseTrace = {
+            x: baseFishData.map(d => d.x),       // X축: 길이 (Length)
+            y: baseFishData.map(d => d.height),  // Y축: 높이 (Height)
+            z: baseFishData.map(d => d.width),   // Z축: 두께 (Width)
+            text: baseFishData.map(d => `무게: ${d.y}g`),
+            mode: 'markers',
+            type: 'scatter3d',
+            name: '기존 농어 (56마리)',
+            marker: {
+                size: 6,
+                color: baseFishData.map(d => d.y), // 무게에 따라 색상 그라데이션 적용!
+                colorscale: 'Greens',
+                reversescale: true,
+                opacity: 0.8,
+                line: { color: '#27593d', width: 1 },
+                colorbar: {
+                    title: '무게(g)',
+                    thickness: 15,
+                    len: 0.7
+                }
+            },
+            hovertemplate: 
+                '<b>[기존 농어]</b><br>' +
+                '• 길이(X): %{x} cm<br>' +
+                '• 높이(Y): %{y} cm<br>' +
+                '• 두께(Z): %{z} cm<br>' +
+                '• <b>%{text}</b><extra></extra>'
+        };
+
+        // 3. 새로 예측된 생선 3D 데이터셋 (Trace 1 - 처음엔 비어있음)
+        const predictedTrace = {
+            x: [],
+            y: [],
+            z: [],
+            text: [],
+            mode: 'markers',
+            type: 'scatter3d',
+            name: '예측된 생선 (New)',
+            marker: {
+                size: 12,
+                color: '#ff5722', // 눈에 확 띄는 주황색
+                opacity: 1,
+                line: { color: '#ffe0b2', width: 6 }
+            },
+            hovertemplate: 
+                '<b>[예측된 생선]</b><br>' +
+                '• 길이(X): %{x} cm<br>' +
+                '• 높이(Y): %{y} cm<br>' +
+                '• 두께(Z): %{z} cm<br>' +
+                '• <b>예측 무게: %{text} g</b><extra></extra>'
+        };
+
+        // 4. 3D 그래프 레이아웃 설정
+        const layout = {
+            margin: { l: 0, r: 0, b: 0, t: 30 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            legend: { x: 0, y: 1, font: { size: 14 } },
+            scene: {
+                xaxis: { title: '길이 (cm)', backgroundcolor: '#fafbfa', showbackground: true },
+                yaxis: { title: '높이 (cm)', backgroundcolor: '#f0f4f2', showbackground: true },
+                zaxis: { title: '두께 (cm)', backgroundcolor: '#fafbfa', showbackground: true },
+                camera: {
+                    eye: { x: 1.6, y: -1.6, z: 1.1 } // 처음 보일 때 가장 입체적인 각도
+                }
+            }
+        };
+
+        // 3D 차트 그리기
+        Plotly.newPlot('fish3DChart', [baseTrace, predictedTrace], layout, {responsive: true});
+
+        // 5. 3D 공간에서 예측된 점이 두근거리며 반짝이는 애니메이션
+        let pulseTimer = null;
+        function start3DPulseAnimation() {
+            if (pulseTimer) clearInterval(pulseTimer);
+            let growing = true;
+
+            pulseTimer = setInterval(() => {
+                const newSize = growing ? 16 : 9;
+                const newBorder = growing ? 12 : 3;
+                
+                // 1번 트랙(예측된 생선)의 마커 크기만 실시간 변경
+                Plotly.restyle('fish3DChart', {
+                    'marker.size': newSize,
+                    'marker.line.width': newBorder
+                }, [1]);
+
+                growing = !growing;
+            }, 450);
+        }
+
+        // 6. 폼 제출 시 예측 요청 + 3D 공간에 점 찍기
+        const fishForm = document.getElementById('fishForm');
+        const weightDisplay = document.getElementById('predictedWeight');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fishForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const length = parseFloat(document.getElementById('length').value);
+            const height = parseFloat(document.getElementById('height').value);
+            const width = parseFloat(document.getElementById('width').value);
+
+            if (!isNaN(length) && !isNaN(height) && !isNaN(width)) {
+                try {
+                    const response = await fetch("/predict_weight/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": csrfToken
+                        },
+                        body: JSON.stringify({
+                            length: length,
+                            height: height,
+                            width: width
+                        })
+                    });
+
+                    // 서버가 400 등 에러를 뱉었을 때 서버의 상세 에러 메시지를 콘솔에 찍도록 수정
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(`서버 응답 오류 (${response.status}): ${errData.message || ''}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        const predictedWeight = Number(data.weight).toFixed(1);
+                        
+                        // ① 좌측 결과 박스에 숫자 표시
+                        weightDisplay.textContent = predictedWeight;
+
+                        // ② 우측 3D 차트의 1번 트랙(예측된 생선)에 X(길이), Y(높이), Z(두께) 좌표 업데이트
+                        Plotly.restyle('fish3DChart', {
+                            x: [[length]],
+                            y: [[height]],
+                            z: [[width]],
+                            text: [[predictedWeight]]
+                        }, [1]);
+
+                        // ③ 3D 점 반짝임 애니메이션 시작
+                        start3DPulseAnimation();
+                    }
+                } catch (error) {
+                    console.error("예측 요청 중 오류 발생:", error);
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

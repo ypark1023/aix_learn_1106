@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>와인 종류 예측</title>
+    <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let myChart = null; // 차트 객체 전역 변수
+
+        function sendBtn(){
+            const send_data = $('#data').val();
+            console.log("데이터 : " + send_data);
+            
+            // views.py의 함수 경로에 맞게 url 수정 (예: '/adata/')
+            $.ajax({
+                url: '/adata/',
+                type: 'post',
+                headers: {'X-CSRFToken': '{{csrf_token}}'},
+                data: {'data': send_data},
+                dataType: 'json',
+                success: function(response){
+                    alert('예측 성공');
+                    console.log(response);
+                    
+                    // 1. 딕셔너리 데이터로 HTML 업데이트 (와인 문구로 수정)
+                    $('#result').text("입력데이터 : " + response.result);
+                    $('#result2').text("예측 와인 : " + response.result2);
+                    $('#result3').text("예측 확률 : " + (response.result3 * 100).toFixed(1) + "%");
+
+                    // 2. 확률 막대그래프 그리기 함수 호출
+                    drawProbabilityChart(response.wine_list, response.probs, response.result2);
+                },
+                error: function(xhr, status, error){
+                    alert('예측 오류');
+                    console.log(error);
+                }
+            });
+        }
+
+        // 차트를 그리는 함수 정의 (누락되었던 부분)
+        function drawProbabilityChart(labels, data, predictedWine) {
+            const ctx = document.getElementById('probabilityChart').getContext('2d');
+            
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            // 예측된 와인은 와인색, 나머지는 회색으로 강조
+            const backgroundColors = labels.map(wine => 
+                wine === predictedWine ? 'rgba(210, 0, 70, 0.8)' : 'rgba(201, 203, 207, 0.5)'
+            );
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '예측 확률',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1.0
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <h1>와인 종류 예측</h1>
+    <div>
+        <label> 와인의 알코올 도수, 당도, pH 정도를 입력하세요
+            <p>(예: 10.5,6.1,3.35)</p>
+        </label><br/>
+        <input type='text' name='data' id='data'>
+        <button type='button' onclick='sendBtn()'>예측</button>
+        <br><br>
+        
+        <div id='result'>입력데이터 : {{result}}</div>
+        <div id='result2'>예측 와인 : {{result2}}</div>
+        <div id='result3'>예측 확률 : {{result3}}</div>
+    </div>
+
+    <!-- 그래프 그리기 영역 -->
+    <br>
+    <div style="width: 600px; height: 300px;">
+        <canvas id="probabilityChart"></canvas>
+    </div>
+</body>
+</html>

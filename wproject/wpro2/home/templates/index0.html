@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생선 무게 예측</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f7f5f0;
+            color: #2c3531;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 40px 20px;
+        }
+
+        .top-header {
+            position: absolute;
+            top: 34px;
+            left: 38px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: #2c3531;
+        }
+
+        .fish-icon {
+            width: 44px;
+            height: 44px;
+            fill: #3b7a57;
+            transition: transform 0.2s ease;
+        }
+
+        .top-header:hover .fish-icon {
+            transform: scale(1.08) rotate(-5deg);
+        }
+
+        .brand-text {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: #4a5550;
+        }
+
+        .predictor-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 504px;
+            padding: 48px 44px;
+            border-radius: 24px;
+            box-shadow: 0 14px 38px rgba(44, 53, 49, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .title {
+            font-size: 29px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #1e2623;
+        }
+
+        .subtitle {
+            font-size: 17px;
+            text-align: center;
+            color: #7c8883;
+            margin-bottom: 38px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #3d4843;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 16px 52px 16px 20px;
+            font-size: 19px;
+            border: 2px solid #e2e6e4;
+            border-radius: 14px;
+            background-color: #fafbfa;
+            color: #2c3531;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .input-wrapper input:focus {
+            border-color: #3b7a57;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 5px rgba(59, 122, 87, 0.1);
+        }
+
+        .unit {
+            position: absolute;
+            right: 20px;
+            font-size: 17px;
+            font-weight: 500;
+            color: #8c9893;
+            pointer-events: none;
+        }
+
+        /* 추가된 예측하기 버튼 스타일 (120% 확대 비율 적용) */
+        .predict-btn {
+            width: 100%;
+            margin-top: 8px;
+            padding: 18px;
+            background-color: #3b7a57;
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 700;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .predict-btn:hover {
+            background-color: #2e6246;
+        }
+
+        .predict-btn:active {
+            transform: scale(0.99);
+        }
+
+        .result-box {
+            margin-top: 32px;
+            padding: 29px;
+            background-color: #f0f4f2;
+            border-radius: 17px;
+            text-align: center;
+            border: 1px solid #dce5e0;
+        }
+
+        .result-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #5c6e65;
+            margin-bottom: 8px;
+        }
+
+        .result-value-wrap {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .result-value {
+            font-size: 41px;
+            font-weight: 800;
+            color: #27593d;
+        }
+
+        .result-unit {
+            font-size: 22px;
+            font-weight: 600;
+            color: #5c6e65;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="/" class="top-header">
+        <svg class="fish-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12,6 C16.5,6 20.5,8.5 22.5,12 C20.5,15.5 16.5,18 12,18 C8.5,18 5.5,16.5 3.5,14.5 L1,17 L1,7 L3.5,9.5 C5.5,7.5 8.5,6 12,6 Z M16.5,10.5 C15.67,10.5 15,11.17 15,12 C15,12.83 15.67,13.5 16.5,13.5 C17.33,13.5 18,12.83 18,12 C18,11.17 17.33,10.5 16.5,10.5 Z"/>
+        </svg>
+        <span class="brand-text">Fish Weight AI</span>
+    </a>
+
+    <main class="predictor-card">
+        <h1 class="title">생선 무게 예측</h1>
+        <p class="subtitle">길이, 높이, 두께를 입력하고 버튼을 눌러주세요.</p>
+
+        <form id="fishForm">
+            {% csrf_token %}
+            <div class="input-group">
+                <label for="length">생선 길이 (Length)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="length" step="0.01" min="0" placeholder="예: 8.4" required>
+                    <span class="unit">cm</span>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="height">생선 높이 (Height)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="height" step="0.01" min="0" placeholder="예: 2.11" required>
+                    <span class="unit">cm</span>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="width">생선 두께 (Width)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="width" step="0.01" min="0" placeholder="예: 1.41" required>
+                    <span class="unit">cm</span>
+                </div>
+            </div>
+
+            <!-- 두께 아래에 추가된 예측하기 버튼 -->
+            <button type="submit" class="predict-btn">무게 예측하기</button>
+        </form>
+
+        <div class="result-box">
+            <div class="result-label">예측된 생선 무게</div>
+            <div class="result-value-wrap">
+                <span id="predictedWeight" class="result-value">0.00</span>
+                <span class="result-unit">g</span>
+            </div> 
+            <!--<br>
+            <div class="result-label">
+                <span class="result-label">정확도 : <span class="result-percent">0.0%</span></span>                
+            </div>-->
+        </div>
+    </main>
+
+    <script>
+        const fishForm = document.getElementById('fishForm');
+        const weightDisplay = document.getElementById('predictedWeight');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        // 폼 제출(버튼 클릭 또는 엔터키) 시에만 예측 실행
+        fishForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // 페이지 새로고침 방지
+
+            const length = parseFloat(document.getElementById('length').value);
+            const height = parseFloat(document.getElementById('height').value);
+            const width = parseFloat(document.getElementById('width').value);
+
+            if (!isNaN(length) && !isNaN(height) && !isNaN(width)) {
+                try {
+                    const response = await fetch("/predict_weight/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": csrfToken
+                        },
+                        body: JSON.stringify({
+                            length: length,
+                            height: height,
+                            width: width
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        weightDisplay.textContent = data.weight.toFixed(1);
+                    }
+                } catch (error) {
+                    console.error("예측 요청 중 오류 발생:", error);
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
